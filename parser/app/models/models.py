@@ -66,8 +66,8 @@ class RegexpParser(DeclarativeBase):
     __tablename__ = 'regexp_parsers'
 
     class Type(Enum):
-        GROUP = 'GROUP'
-        FIND_ALL = 'FIND_ALL'
+        GROUP = 'group'
+        FIND_ALL = 'find_all'
 
     id = Column(Integer, primary_key=True)
     regexp = Column(String, nullable=False)

@@ -6,7 +6,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from app.models.connection_string import connection_string
+from app.logic.connection_string import connection_string
 from app.models.models import DeclarativeBase
 
 # this is the Alembic Config object, which provides
