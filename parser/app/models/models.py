@@ -10,6 +10,7 @@ from sqlalchemy import (
     Time,
     Enum as EnumType,
 )
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -65,13 +66,9 @@ class Check(DeclarativeBase):
 class RegexpParser(DeclarativeBase):
     __tablename__ = 'regexp_parsers'
 
-    class Type(Enum):
-        GROUP = 'group'
-        FIND_ALL = 'find_all'
-
     id = Column(Integer, primary_key=True)
     regexp = Column(String, nullable=False)
-    type = Column(EnumType(Type), nullable=False)
+    type = Column(postgresql.ENUM('GROUP', 'FILD_ALL', name='_option'), nullable=False)
 
 
 class BS4Parser(DeclarativeBase):
