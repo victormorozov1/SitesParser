@@ -1,6 +1,7 @@
 from app.models.json_field import Json
 from enum import Enum
 from sqlalchemy import (
+    Boolean,
     create_engine,
     ForeignKey,
     Column,
@@ -37,6 +38,8 @@ class Parser(DeclarativeBase):
     parser_type = Column(EnumType(Type))
     parser_id = Column(Integer)
     rule_id = Column(Integer, ForeignKey('rules.id'))
+    list_input = Column(Boolean, default=False)
+    linerize_result = Column(Boolean, default=False)
 
 
 class Rule(DeclarativeBase):
