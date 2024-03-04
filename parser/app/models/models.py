@@ -1,5 +1,3 @@
-from app.models.json_field import Json
-from enum import Enum
 from sqlalchemy import (
     Boolean,
     create_engine,
@@ -8,12 +6,12 @@ from sqlalchemy import (
     Integer,
     String,
     DateTime,
-    Time,
-    Enum as EnumType,
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+
+from app.models.fields import Json
 
 DeclarativeBase = declarative_base()
 
@@ -30,12 +28,8 @@ class Endpoint(DeclarativeBase):
 class Parser(DeclarativeBase):
     __tablename__ = 'parsers'
 
-    class Type(Enum):
-        REGEXP = 'REGEXP'
-        BS4 = 'BS4'
-
     id = Column(Integer, primary_key=True)
-    parser_type = Column(EnumType(Type))
+    parser_type = Column(postgresql.ENUM('REGEXP_PARSER', 'BS4_PARSER', name='parser_type'), nullable=False)
     parser_id = Column(Integer)
     rule_id = Column(Integer, ForeignKey('rules.id'))
     list_input = Column(Boolean, default=False)
@@ -46,24 +40,21 @@ class Rule(DeclarativeBase):
     __tablename__ = 'rules'
 
     id = Column(Integer, primary_key=True)
-    time_delay = Column(Time, nullable=False)
+    time_delay = Column(Integer, nullable=False)
     last_check_time = Column(DateTime, nullable=True)
     send_result_url = Column(String, nullable=False)
-    endpoint = Column(Integer, ForeignKey('endpoints.id'))
+    endpoint_id = Column(Integer, ForeignKey('endpoints.id'))
+    endpoint = relationship('Endpoint')
     parsers = relationship('Parser')
 
 
 class Check(DeclarativeBase):
     __tablename__ = 'checks'
 
-    class Status(Enum):
-        NEW = 'NEW'
-        IN_PROGRESS = 'IN_PROGRESS'  # TODO не забыть что при перезапуске надо поменять IN_PROGRESS на NEW
-
     id = Column(Integer, primary_key=True)
     result = Column(Json, nullable=True)
     rule = Column(Integer, ForeignKey('rules.id'))
-    status = Column(EnumType(Status), nullable=False)
+    status = Column(postgresql.ENUM('NEW', 'IN_PROGRESS', name='status'), nullable=False)
 
 
 class RegexpParser(DeclarativeBase):
@@ -71,7 +62,7 @@ class RegexpParser(DeclarativeBase):
 
     id = Column(Integer, primary_key=True)
     regexp = Column(String, nullable=False)
-    type = Column(postgresql.ENUM('GROUP', 'FILD_ALL', name='_option'), nullable=False)
+    type = Column(postgresql.ENUM('DICT', 'FIND_ALL', name='type'), nullable=False)
 
 
 class BS4Parser(DeclarativeBase):
@@ -80,21 +71,23 @@ class BS4Parser(DeclarativeBase):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=True)
     search_by_attrs = Column(Json, nullable=True)
-    output_attrs = Column(Json, nullable=True)
+    output_attrs = Column(postgresql.ARRAY(String), nullable=True)
 
 
 if __name__ == '__main__':
-    from app.models.connection_string import connection_string
+    from app.logic.connection_string import connection_string
     engine = create_engine(connection_string)
     engine.connect()
     print('Connected!')
-    # DeclarativeBase.metadata.create_all(engine)
+    DeclarativeBase.metadata.create_all(engine)
     # from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
     # engine = create_engine('sqlite:///notes/notes.db')
     # engine.connect()
     session = Session(engine)
+    session.add(BS4Parser(name='a', output_attrs=['1', '2']))
+    session.commit()
     from sqlalchemy import text
     print(session.execute(text('SELECT table_name from information_schema.tables')))
 

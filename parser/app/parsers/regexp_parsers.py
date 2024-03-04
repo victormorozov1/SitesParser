@@ -4,9 +4,9 @@ from app.parsers.base_parser import BaseParser, Type
 
 
 class FindAllParser(BaseParser):
-    def __init__(self, regexp: str) -> None:
+    def __init__(self, regexp: str, *args, **kwargs) -> None:
         self.regexp = re.compile(regexp)
-        super().__init__(input_types=[Type.STRING])
+        super().__init__(*args, input_types=[Type.STRING], **kwargs)
 
     def main(self, input_data: str) -> list[str]:
         return self.regexp.findall(input_data)

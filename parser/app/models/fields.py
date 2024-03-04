@@ -7,6 +7,7 @@ class Json(sqlalchemy.TypeDecorator):
     impl = sqlalchemy.String
 
     def process_bind_param(self, value, dialect):
+        print('processing json')
         return json.dumps(value)
 
     def process_result_value(self, value, dialect):

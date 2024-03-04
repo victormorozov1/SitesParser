@@ -151,7 +151,7 @@ class TestFindAllParser:
         ]
     )
     def test_findall_parser(self, regexp: str, input_data: str, expected_result: list[str]) -> None:
-        parser = FindAllParser(regexp)
+        parser = FindAllParser(regexp, list_input=False, linerize_result=False)
         assert parser.process(input_data) == expected_result
 
 

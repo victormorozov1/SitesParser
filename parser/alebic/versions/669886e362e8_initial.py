@@ -1,18 +1,20 @@
-"""initial
+"""Initial
 
-Revision ID: ad669366a757
+Revision ID: 669886e362e8
 Revises: 
-Create Date: 2024-02-25 02:40:03.523404
+Create Date: 2024-03-04 13:46:37.078338
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from app.models.json_field import Json
+from sqlalchemy.dialects import postgresql
+
+from app.models.fields import Json
 
 # revision identifiers, used by Alembic.
-revision: str = 'ad669366a757'
+revision: str = '669886e362e8'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,7 +26,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=True),
     sa.Column('search_by_attrs', Json(), nullable=True),
-    sa.Column('output_attrs', Json(), nullable=True),
+    sa.Column('output_attrs', postgresql.ARRAY(sa.String()), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('endpoints',
@@ -37,31 +39,33 @@ def upgrade() -> None:
     op.create_table('regexp_parsers',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('regexp', sa.String(), nullable=False),
-    sa.Column('type', sa.Enum('GROUP', 'FIND_ALL', name='type'), nullable=False),
+    sa.Column('type', postgresql.ENUM('DICT', 'FIND_ALL', name='type'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('rules',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('time_delay', sa.Time(), nullable=False),
+    sa.Column('time_delay', sa.Integer(), nullable=False),
     sa.Column('last_check_time', sa.DateTime(), nullable=True),
     sa.Column('send_result_url', sa.String(), nullable=False),
-    sa.Column('endpoint', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['endpoint'], ['endpoints.id'], ),
+    sa.Column('endpoint_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['endpoint_id'], ['endpoints.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('checks',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('result', Json(), nullable=True),
     sa.Column('rule', sa.Integer(), nullable=True),
-    sa.Column('status', sa.Enum('NEW', 'IN_PROGRESS', name='status'), nullable=False),
+    sa.Column('status', postgresql.ENUM('NEW', 'IN_PROGRESS', name='status'), nullable=False),
     sa.ForeignKeyConstraint(['rule'], ['rules.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('parsers',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('parser_type', sa.Enum('REGEXP', 'BS4', name='type'), nullable=True),
+    sa.Column('parser_type', postgresql.ENUM('REGEXP_PARSER', 'BS4_PARSER', name='parser_type'), nullable=False),
     sa.Column('parser_id', sa.Integer(), nullable=True),
     sa.Column('rule_id', sa.Integer(), nullable=True),
+    sa.Column('list_input', sa.Boolean(), nullable=True),
+    sa.Column('linerize_result', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['rule_id'], ['rules.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
