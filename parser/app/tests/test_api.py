@@ -59,15 +59,14 @@ def test_create_endpoint_endpoint(mocker: MockFixture) -> None:
 
 def test_create_rule_endpoint(mocker: MockFixture) -> None:
     create_rule = mocker.patch('app.api.create_rule', return_value=11)
-    response = client.post(
-        '/create_rule',
-        json={
-            'time_delay': 120,
-            'send_result_url': 'localhost228:322',
-            'endpoint_id': 3,
-            'parsers_datas': {'some': 'data'},
-        },
-    )
+    response = client.post('/create_rule', json={'endpoint_id': 3, 'parsers_datas': {'some': 'data'}})
     assert response.status_code == 200
     assert response.json() == {'created_id': 11}
-    create_rule.assert_called_once_with(120, 'localhost228:322', 3, None, None, {'some': 'data'})
+    create_rule.assert_called_once_with(3, None, None, {'some': 'data'})
+
+
+def test_parse_endpoint(mocker: MockFixture) -> None:
+    process_rule = mocker.patch('app.api.process_rule', return_value={'some': 'data'})
+    response = client.get('/parse', params={'rule_id': 69})
+    assert response.json() == {'some': 'data'}
+    process_rule.assert_called_once_with(69)

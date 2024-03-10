@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Response, status
 
-from app.logic.db_client import create_bs4_parser, create_endpoint, create_parser, create_regexp_parser, create_rule
+from app.logic.db_utils import create_bs4_parser, create_endpoint, create_parser, create_regexp_parser, create_rule
+from app.logic.parse import process_rule
 
 app = FastAPI()
 
@@ -53,11 +54,18 @@ async def create_rule_endpoint(request: Request):
     data = await request.json()
     return {
         'created_id': create_rule(
-            data['time_delay'],
-            data['send_result_url'],
             data.get('endpoint_id'),
             data.get('endpoint_data'),
             data.get('parsers_ids'),
             data.get('parsers_datas'),
         ),
     }
+
+
+@app.get('/parse')
+async def parse_endpoint(rule_id: int):
+    result = await process_rule(rule_id)
+    if isinstance(result, (dict, list)):
+        return result
+    else:
+        return {'result': result}

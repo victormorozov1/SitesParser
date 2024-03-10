@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable
 
 
 class ParserTypeError(ValueError):
@@ -28,13 +28,13 @@ class BaseParser:
         if list_input:
             self.main = self.list_decorator(self.main)
 
-            # тут нужно перевести все фходные типы в списковые, но пока что только 2 типа так что все просто
+            # тут нужно перевести все входные типы в списковые, но пока что только 2 типа так что все просто
             self.input_types = [Type.STRING_LIST]
 
         self.linerize_result = linerize_result
 
     @classmethod
-    def linerize(cls, a: any) -> Iterable:
+    def linerize(cls, a: Any) -> Iterable:
         try:
             for i in a:
                 yield from cls.linerize(i)
@@ -48,7 +48,7 @@ class BaseParser:
 
         return _wrapper
 
-    def main(self, input_data: any) -> any:
+    def main(self, input_data: Any) -> Any:
         raise NotImplementedError
 
     def process(self, input_data: any) -> any:

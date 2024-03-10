@@ -4,11 +4,18 @@ from bs4 import BeautifulSoup
 
 
 class BS4Parser(BaseParser):
-    def __init__(self, name: str, search_by_attrs: dict[str, any], output_attrs: list[str], **kwargs) -> None:
+    def __init__(
+            self,
+            name: str,
+            search_by_attrs: dict[str, any],
+            output_attrs: list[str],
+            list_input: bool,
+            linerize_result: bool = False,
+    ) -> None:
         self.name = name
         self.search_by_attrs = search_by_attrs
         self.output_attrs = output_attrs
-        super().__init__(input_types=[Type.STRING], **kwargs)
+        super().__init__([Type.STRING], list_input, linerize_result=linerize_result)
 
     def main(self, input_data: str) -> list[dict[str, any]]:
         soup = BeautifulSoup(input_data)

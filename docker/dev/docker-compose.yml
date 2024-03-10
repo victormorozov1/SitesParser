@@ -7,12 +7,18 @@ services:
       POSTGRES_USER: "user"
       POSTGRES_PASSWORD: "password"
     ports:
-      - "5432:5432"
+      - "13000:5432"
   parser:
     container_name: dev-parser
     image: spaikbrawlstars/parser
-    env_file:
-      - ../../parser/.env
+    environment:
+      pg_host: "postgres"
+      pg_port: 5432
+      pg_user: "user"
+      pg_db_name: "db"
+      pg_password: "password"
+#    env_file:
+#      - ../../parser/.env
     ports:
       - "80:80"
     command: >
