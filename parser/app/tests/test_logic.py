@@ -38,6 +38,7 @@ class TestDbUtils:
             ['test', 'keks'],
             list_input=True,
             linerize_result=True,
+            only_values=False,
         ) == 1
         with Session(engine) as session:
             parser = session.query(BS4ParserModel).one()
@@ -46,6 +47,7 @@ class TestDbUtils:
             assert parser.output_attrs == ['test', 'keks']
             assert parser.list_input
             assert parser.linerize_result
+            assert not parser.only_values
 
     def test_create_parser(self, clear_and_migrate, mocker: MockFixture) -> None:
         mocker.patch.object(db_utils, 'create_bs4_parser', return_value=2)
