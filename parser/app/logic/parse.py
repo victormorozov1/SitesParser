@@ -16,7 +16,12 @@ def init_parsers_from_db_models(parsers: list[Parser]) -> Iterable[BaseParser]:
     for parser in load_parsers(parsers):
         if isinstance(parser, BS4ParserModel):
             yield BS4Parser(
-                parser.name, parser.search_by_attrs, parser.output_attrs, parser.list_input, parser.linerize_result,
+                parser.name,
+                parser.search_by_attrs,
+                parser.output_attrs,
+                parser.only_values,
+                parser.list_input,
+                parser.linerize_result,
             )
         elif isinstance(parser, RegexpParserModel):
             if parser.type is RegexpParserModel.Type.FIND_ALL:

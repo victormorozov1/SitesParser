@@ -9,13 +9,15 @@ class BS4Parser(BaseParser):
             name: str,
             search_by_attrs: dict[str, any],
             output_attrs: list[str],
+            only_values: bool,
             list_input: bool,
-            linerize_result: bool = False,
+            linerize_result: bool,
     ) -> None:
         self.name = name
         self.search_by_attrs = search_by_attrs
         self.output_attrs = output_attrs
-        super().__init__([Type.STRING], list_input, linerize_result=linerize_result)
+        self.only_values = only_values
+        super().__init__([Type.STRING], list_input, linerize_result)
 
     def main(self, input_data: str) -> list[dict[str, any]]:
         soup = BeautifulSoup(input_data)
@@ -24,5 +26,8 @@ class BS4Parser(BaseParser):
             res = {}
             for output_attr in self.output_attrs:
                 res[output_attr] = getattr(i, output_attr) or i.attrs.get(output_attr)
-            l.append(res)
+            if self.only_values:
+                l.append(list(res.values()))
+            else:
+                l.append(res)
         return l

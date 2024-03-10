@@ -6,6 +6,7 @@ from typing import ContextManager
 from app.parsers.base_parser import BaseParser, Type, ParserTypeError
 from app.parsers.bs4_parser import BS4Parser
 from app.parsers.regexp_parsers import DictParser, FindAllParser
+from app.parsers.not_empty_parser import NotEmptyParser
 
 
 class TestBaseParser:
@@ -31,7 +32,7 @@ class TestBaseParser:
                 None,
                 pytest.raises(
                     ParserTypeError,
-                    match=r"Parsers can only process types list, list\[str\], got \['1', '2', 1\]",
+                    match=r"Parsers can only process input types (list, list\[str\], list\[dict\]), got \['1', '2', 1\]",
                 ),
             ),
             (
@@ -39,7 +40,7 @@ class TestBaseParser:
                 None,
                 pytest.raises(
                     ParserTypeError,
-                    match=r"Parsers can only process types list, list\[str\], got <class 'object'>",
+                    match=r"Parsers can only process input types (list, list\[str\], list\[dict\]), got <class 'object'>",
                 ),
             ),
         ]
@@ -85,7 +86,7 @@ class TestBaseParser:
                 ['1', 2, 3],
                 pytest.raises(
                     ParserTypeError,
-                    match=r"Parsers can only process types list, list\[str\], got \['1', 2, 3\]",
+                    match=r"Parsers can only process input types (list, list\[str\], list\[dict\]), got \['1', 2, 3\]",
                 ),
                 False,
                 False,
@@ -172,15 +173,38 @@ class TestDictParser:
 
 
 class TestBS4Parser:
-    def test_bs4_parser(self, index_html: str) -> None:
+
+    @pytest.mark.parametrize(
+        'only_values, list_input, linerize_result, expected_result',
+        [
+            (
+                False,
+                False,
+                False,
+                [{'text': 'Какой-то заголовок', 'id': 'first_header'}, {'text': 'Первая секция', 'id': 'super_header'}],
+            ),
+            (
+                True,
+                False,
+                True,
+                ['Какой-то заголовок', 'first_header', 'Первая секция', 'super_header'],
+            ),
+        ],
+    )
+    def test_bs4_parser(self, index_html: str, only_values, list_input, linerize_result, expected_result) -> None:
         parser = BS4Parser(
             'h2',
             {'class': 'some_class'},
             ['text', 'id'],
-            list_input=False,
-            linerize_result=False,
+            only_values=only_values,
+            list_input=list_input,
+            linerize_result=linerize_result,
         )
-        assert parser.main(index_html) == [
-            {'text': 'Какой-то заголовок', 'id': 'first_header'},
-            {'text': 'Первая секция', 'id': 'super_header'},
-        ]
+        assert list(parser.process(index_html)) == expected_result
+
+
+class TestNotEmptyParser:
+    def test_not_empty_parser(self) -> None:
+        parser = NotEmptyParser(False, False)
+        assert parser.process(['', 's', 'ss']) == ['s', 'ss']
+        assert parser.process([{}]) == []

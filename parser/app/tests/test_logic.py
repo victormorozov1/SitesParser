@@ -1,4 +1,3 @@
-import asyncio
 from itertools import chain
 import pytest
 from pytest_mock import MockFixture
@@ -6,7 +5,14 @@ from sqlalchemy.orm import Session
 
 from app.logic import db_utils, parse
 from app.logic.engine import engine
-from app.models.models import Endpoint, BS4Parser as BS4ParserModel, Parser, RegexpParser as RegexpParserModel, Rule
+from app.models.models import (
+    Endpoint,
+    BS4Parser as BS4ParserModel,
+    NotEmptyParser as NotEmptyParserModel,
+    Parser,
+    RegexpParser as RegexpParserModel,
+    Rule,
+)
 from app.parsers.bs4_parser import BS4Parser
 from app.parsers.regexp_parsers import DictParser, FindAllParser
 
@@ -19,9 +25,7 @@ class TestDbUtils:
             'some_regexp', 'DICT', list_input=True, linerize_result=True,
         ) == 1
         with Session(engine) as session:
-            parsers = session.query(RegexpParserModel)
-            assert parsers.count() == 1
-            parser = parsers.one()
+            parser = session.query(RegexpParserModel).one()
             assert parser.regexp == 'some_regexp'
             assert parser.type == 'DICT'
             assert parser.list_input
@@ -36,9 +40,7 @@ class TestDbUtils:
             linerize_result=True,
         ) == 1
         with Session(engine) as session:
-            parsers = session.query(BS4ParserModel)
-            assert parsers.count() == 1
-            parser = parsers.one()
+            parser = session.query(BS4ParserModel).one()
             assert parser.name == 'h1'
             assert parser.search_by_attrs == {'attr1': 'val1', 'attr2': 'val2'}
             assert parser.output_attrs == ['test', 'keks']
@@ -54,14 +56,24 @@ class TestDbUtils:
         assert db_utils.create_parser(Parser.ParserType.REGEXP_PARSER, parser_params={'kaka': 'some_name'}) == 2
         db_utils.create_regexp_parser.assert_called_once_with(kaka='some_name')  # noqa
 
+        mocker.patch.object(db_utils, 'create_not_empty_parser', return_value=4)
+        assert db_utils.create_parser(
+            Parser.ParserType.NOT_EMPTY_PARSER, parser_params={'list_input': True, 'linerize_result': False},
+        ) == 3
+        db_utils.create_not_empty_parser.assert_called_once_with(list_input=True, linerize_result=False)  # noqa
+
         with Session(engine) as session:
             actual_parser_1 = session.query(Parser).filter(Parser.id == 1).one()
-            assert actual_parser_1.parser_type == 'BS4_PARSER'
+            assert actual_parser_1.parser_type is Parser.ParserType.BS4_PARSER
             assert actual_parser_1.parser_id == 2
 
             actual_parser_2 = session.query(Parser).filter(Parser.id == 2).one()
-            assert actual_parser_2.parser_type == 'REGEXP_PARSER'
+            assert actual_parser_2.parser_type is Parser.ParserType.REGEXP_PARSER
             assert actual_parser_2.parser_id == 3
+
+            actual_parser_3 = session.query(Parser).filter(Parser.id == 3).one()
+            assert actual_parser_3.parser_type is Parser.ParserType.NOT_EMPTY_PARSER
+            assert actual_parser_3.parser_id == 4
 
     def test_create_endpoint(self) -> None:
         assert db_utils.create_endpoint(
@@ -108,11 +120,13 @@ class TestDbUtils:
                 Parser(parser_type=Parser.ParserType.BS4_PARSER, parser_id=1),
                 Parser(parser_type=Parser.ParserType.BS4_PARSER, parser_id=2),
                 Parser(parser_type=Parser.ParserType.REGEXP_PARSER, parser_id=1),
+                Parser(parser_type=Parser.ParserType.NOT_EMPTY_PARSER, parser_id=1),
             ]
             typed_parsers = [
                 BS4ParserModel(name='p', output_attrs=['style']),
                 BS4ParserModel(name='a'),
                 RegexpParserModel(regexp='/d+./d+', type=RegexpParserModel.Type.FIND_ALL),
+                NotEmptyParserModel(list_input=False, linerize_result=True),
             ]
             for p in chain(typed_parsers, common_parsers):
                 session.add(p)
@@ -124,10 +138,21 @@ class TestDbUtils:
                     assert actual_parser.name == expected_parser.name
                     assert actual_parser.output_attrs == expected_parser.output_attrs
                     assert actual_parser.search_by_attrs == expected_parser.search_by_attrs
-                else:
+                elif isinstance(expected_parser, RegexpParserModel):
                     assert isinstance(actual_parser, RegexpParserModel)
                     assert actual_parser.type == expected_parser.type
                     assert actual_parser.regexp == expected_parser.regexp
+                elif isinstance(expected_parser, NotEmptyParserModel):
+                    assert isinstance(actual_parser, NotEmptyParserModel)
+                    assert not actual_parser.list_input
+                    assert actual_parser.linerize_result
+
+    def test_create_not_empty_parser(self) -> None:
+        assert db_utils.create_not_empty_parser(list_input=True, linerize_result=True) == 1
+        with Session(engine) as session:
+            parser = session.query(NotEmptyParserModel).one()
+            assert parser.list_input
+            assert parser.linerize_result
 
 
 class TestParse:
@@ -182,7 +207,7 @@ class TestParse:
         assert not parsers[2].linerize_result
 
     def test_process_parsers_chain(self, mocker: MockFixture) -> None:
-        p1 = BS4Parser('p', {}, [], False, False)
+        p1 = BS4Parser('p', {}, [], False, False, False)
         p1_process = mocker.patch.object(p1, 'process')
         p2 = DictParser('somereg', False, False)
         p2_process = mocker.patch.object(p2, 'process')

@@ -32,10 +32,11 @@ class Parser(DeclarativeBase):
     class ParserType(StrEnum):
         REGEXP_PARSER = 'REGEXP_PARSER'
         BS4_PARSER = 'BS4_PARSER'
+        NOT_EMPTY_PARSER = 'NOT_EMPTY_PARSER'
 
     id = Column(Integer, primary_key=True)
     parser_type = Column(postgresql.ENUM(ParserType, name='parser_type'), nullable=False)
-    parser_id = Column(Integer)
+    parser_id = Column(Integer, nullable=True)
     rule_id = Column(Integer, ForeignKey('rules.id'))
 
 
@@ -57,7 +58,13 @@ class Check(DeclarativeBase):
     status = Column(postgresql.ENUM('NEW', 'IN_PROGRESS', name='status'), nullable=False)
 
 
-class RegexpParser(DeclarativeBase):
+class BaseParser(DeclarativeBase):
+    __abstract__ = True
+    list_input = Column(Boolean, default=False)
+    linerize_result = Column(Boolean, default=False)
+
+
+class RegexpParser(BaseParser):
     __tablename__ = 'regexp_parsers'
 
     class Type(StrEnum):
@@ -67,40 +74,19 @@ class RegexpParser(DeclarativeBase):
     id = Column(Integer, primary_key=True)
     regexp = Column(String, nullable=False)
     type = Column(postgresql.ENUM(Type, name='type'), nullable=False)
-    list_input = Column(Boolean, default=False)
-    linerize_result = Column(Boolean, default=False)
 
 
-class BS4Parser(DeclarativeBase):
+class BS4Parser(BaseParser):
     __tablename__ = 'bs4_parsers'
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=True)
     search_by_attrs = Column(Json, nullable=True)
     output_attrs = Column(postgresql.ARRAY(String), nullable=True)
-    list_input = Column(Boolean, default=False)
-    linerize_result = Column(Boolean, default=False)
+    only_values = Column(Boolean)
 
 
-if __name__ == '__main__':
-    from app.logic.connection_string import connection_string
-    engine = create_engine(connection_string)
-    engine.connect()
-    print('Connected!')
-    DeclarativeBase.metadata.create_all(engine)
-    # from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
+class NotEmptyParser(BaseParser):
+    __tablename__ = 'not_empty_parser'
 
-    # engine = create_engine('sqlite:///notes/notes.db')
-    # engine.connect()
-    session = Session(engine)
-    session.add(BS4Parser(name='a', output_attrs=['1', '2']))
-    session.commit()
-    from sqlalchemy import text
-    print(session.execute(text('SELECT table_name from information_schema.tables')))
-
-    # session.add(BS4Parser(name='a', search_by_attrs={'title': 'home'}, output_attrs={'text': 'aboba'}))
-    # session.commit()
-
-    # res = session.query(BS4Parser).one()
-    # print(res)
+    id = Column(Integer, primary_key=True)

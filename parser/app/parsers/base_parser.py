@@ -9,21 +9,25 @@ class ParserTypeError(ValueError):
 class Type(Enum):
     STRING = 'str'
     STRING_LIST = 'list[str]'
+    LIST_DICT = 'list[dict]'
 
     @classmethod
     def from_data(cls, data: any) -> 'Type':
         if isinstance(data, str):
             return cls.STRING
-        if isinstance(data, list) and all(isinstance(el, str) for el in data):
-            return cls.STRING_LIST
-        raise ParserTypeError(f'Parsers can only process types list, list[str], got {data}')
+        if isinstance(data, list):
+            if all(isinstance(el, str) for el in data):
+                return cls.STRING_LIST
+            if all(isinstance(el, dict) for el in data):
+                return cls.LIST_DICT
+        raise ParserTypeError(f'Parsers can only process input types (list, list[str], list[dict]), got {data}')
 
     def __repr__(self):
         return f'<{self.value}>'
 
 
 class BaseParser:
-    def __init__(self, input_types: list[Type], list_input: bool, linerize_result: bool = False) -> None:
+    def __init__(self, input_types: list[Type], list_input: bool, linerize_result: bool) -> None:
         self.input_types = input_types
         if list_input:
             self.main = self.list_decorator(self.main)
@@ -35,6 +39,9 @@ class BaseParser:
 
     @classmethod
     def linerize(cls, a: Any) -> Iterable:
+        if isinstance(a, str):
+            yield a
+            return
         try:
             for i in a:
                 yield from cls.linerize(i)
@@ -61,6 +68,5 @@ class BaseParser:
 
         res = self.main(input_data)
         if self.linerize_result:
-            return self.linerize(res)
+            return list(self.linerize(res))
         return res
-
