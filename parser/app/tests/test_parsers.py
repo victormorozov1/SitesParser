@@ -24,7 +24,7 @@ class TestBaseParser:
                 None,
                 pytest.raises(
                     ParserTypeError,
-                    match=r'Parsers can only process types list, list\[str\], got 1',
+                    match=r'Parsers can only process input types \(list, list\[str\], list\[dict\]\), got 1',
                 ),
             ),
             (
@@ -32,7 +32,9 @@ class TestBaseParser:
                 None,
                 pytest.raises(
                     ParserTypeError,
-                    match=r"Parsers can only process input types (list, list\[str\], list\[dict\]), got \['1', '2', 1\]",
+                    match=(
+                        r"Parsers can only process input types \(list, list\[str\], list\[dict\]\), got \['1', '2', 1\]"
+                    )
                 ),
             ),
             (
@@ -40,7 +42,10 @@ class TestBaseParser:
                 None,
                 pytest.raises(
                     ParserTypeError,
-                    match=r"Parsers can only process input types (list, list\[str\], list\[dict\]), got <class 'object'>",
+                    match=(
+                        r"Parsers can only process input types "
+                        r"\(list, list\[str\], list\[dict\]\), got <class 'object'>"
+                    )
                 ),
             ),
         ]
@@ -86,7 +91,9 @@ class TestBaseParser:
                 ['1', 2, 3],
                 pytest.raises(
                     ParserTypeError,
-                    match=r"Parsers can only process input types (list, list\[str\], list\[dict\]), got \['1', 2, 3\]",
+                    match=(
+                        r"Parsers can only process input types \(list, list\[str\], list\[dict\]\), got \['1', 2, 3\]"
+                    )
                 ),
                 False,
                 False,
@@ -120,13 +127,13 @@ class TestBaseParser:
             linerize: bool,
     ) -> None:
         main = mocker.patch.object(BaseParser, 'main')
-        linerize_mock = mocker.patch.object(BaseParser, 'linerize')
+        linerize_mock = mocker.patch.object(BaseParser, 'linerize', return_value=iter([1, 2, 3]))
         parser = BaseParser(input_types, list_input, linerize)
         with expectation_context:
             res = [main.return_value] * 2 if list_input else main.return_value
 
             if linerize:
-                assert parser.process(input_data) == linerize_mock.return_value
+                assert parser.process(input_data) == [1, 2, 3]
                 linerize_mock.assert_called_once_with(res)
             else:
                 assert parser.process(input_data) == res
