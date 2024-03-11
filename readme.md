@@ -1,3 +1,6 @@
+## What is it
+Using this service, you can create specific rules for parsing websites and use them to retrieve the necessary data.
+
 ## Run service
 With docker:
 ```commandline
